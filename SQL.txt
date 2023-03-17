@@ -1,0 +1,171 @@
+CREATE DATABASE cinema;
+
+\с cinema;
+
+/*художники, композиторы, монтажеры и пр*/
+CREATE TABLE person 
+(
+    id serial PRIMARY KEY,
+    fullname varchar(150) NOT NULL,
+    profession CHARACTER VARYING(150) NOT NULL	
+);
+
+
+/*фильмы*/
+CREATE TABLE film
+(
+    id serial PRIMARY KEY,
+    title varchar(150) NOT NULL,
+    release_year numeric(4) NOT NULL,
+    slogan text,
+    director_id integer REFERENCES person(id) NOT NULL, 
+    screenwriter_id integer REFERENCES person(id) NOT NULL,
+    producer_id integer REFERENCES person(id) NOT NULL,
+    operator_id integer REFERENCES person(id) NOT NULL,
+    composer_id integer REFERENCES person(id) NOT NULL,
+    designer_id integer REFERENCES person(id) NOT NULL,
+    editor_id integer REFERENCES person(id) NOT NULL,
+    budget  numeric(10) NOT NULL,
+    marketing numeric(10) NOT NULL,
+    revenueUSA numeric(10) NOT NULL,
+    revenueOther  numeric(10) NOT NULL,
+    revenueAll numeric(10) GENERATED ALWAYS AS (revenueUSA + revenueOther) STORED,
+    age numeric(2) NOT NULL,
+    rating_mppa varchar(1) NOT NULL,
+    time_of_film time without time zone NOT NULL
+);
+
+/*жанры*/
+CREATE TABLE genre
+(
+    id serial PRIMARY KEY,
+    title varchar(50) NOT NULL
+);
+
+/*связь фильмы жанры*/
+CREATE TABLE film_genre
+(
+    film_id integer REFERENCES film(id)NOT NULL,
+    genre_id integer REFERENCES genre(id) NOT NULL,
+    CONSTRAINT film_genre_id PRIMARY KEY (film_id, genre_id)
+);
+
+/*в главных ролях и роли озвучивали*/
+CREATE TABLE film_person 
+(
+    id serial PRIMARY KEY,
+    fullname varchar(150) NOT NULL,
+    profession CHARACTER VARYING(150) NOT NULL	
+);
+
+/*связь фильм и в главных ролях и роли озвучивали*/
+CREATE TABLE film_film_person
+(
+    film_id integer REFERENCES film(id) NOT NULL ,
+    film_person_id integer REFERENCES film_person(id) NOT NULL,
+    CONSTRAINT film_film_person_id PRIMARY KEY (film_id, film_person_id)
+);
+
+/*страны*/
+CREATE TABLE country 
+(
+    id serial PRIMARY KEY,
+    title varchar(150) NOT NULL
+);
+
+/*связь фильмы и страны*/
+CREATE TABLE film_country
+(
+    film_id integer REFERENCES film(id) NOT NULL ,
+    country_id integer REFERENCES country(id) NOT NULL,
+    CONSTRAINT film_country_id PRIMARY KEY (film_id, country_id)
+);
+
+/*премьера в мире*/
+CREATE TABLE premiere_world
+(
+   id serial PRIMARY KEY,
+   country_id integer REFERENCES country(id) NOT NULL,
+   quantity numeric(10),
+   datepremiere date
+);
+
+/*связь фильм и премьера в мире*/
+CREATE TABLE film_premiere_world
+(
+    film_id integer REFERENCES film(id) NOT NULL ,
+    premiere_world_id integer REFERENCES premiere_world(id) NOT NULL,
+    CONSTRAINT film_premiere_world_id PRIMARY KEY (film_id, premiere_world_id)
+);
+
+/*проактчик в России, например west*/
+CREATE TABLE distributor
+(
+   id serial PRIMARY KEY,
+   title varchar(150) NOT NULL
+);
+
+/*премьера в России*/
+CREATE TABLE premiere_ru
+(
+   id serial PRIMARY KEY,
+   distributor_id integer REFERENCES distributor(id) NOT NULL,
+   datepremiere date
+);
+
+/*связь фильм и премьера в России*/
+CREATE TABLE film_premiere_ru
+(
+    film_id integer REFERENCES film(id) NOT NULL ,
+    premiere_ru_id integer REFERENCES premiere_ru(id) NOT NULL,
+    CONSTRAINT film_premiere_ru_id PRIMARY KEY (film_id, premiere_ru_id)
+);
+
+/*релиз на DVD связь OneToOne чтобы не было нарушения 1NF*/
+CREATE TABLE releasedvd
+(
+   id integer UNIQUE REFERENCES film(id) NOT NULL,
+   title varchar(150) NOT NULL, /*дистреьютер релиза на DVD*/
+   daterelease date
+);
+
+
+INSERT INTO genre (title) VALUES ('драма');
+INSERT INTO genre (title) VALUES ('фентези');
+INSERT INTO genre (title) VALUES ('криминал');
+INSERT INTO genre (title) VALUES ('биография');
+INSERT INTO genre (title) VALUES ('комедия');
+
+INSERT INTO country (title) VALUES ('США');
+INSERT INTO country (title) VALUES ('Франция');
+INSERT INTO country (title) VALUES ('Китай');
+INSERT INTO country (title) VALUES ('Россия');
+INSERT INTO country (title) VALUES ('СССР');
+INSERT INTO country (title) VALUES ('Канада');
+INSERT INTO country (title) VALUES ('Финляндия');
+
+INSERT INTO distributor (title) VALUES ('West');
+INSERT INTO distributor (title) VALUES ('Союз');
+INSERT INTO distributor (title) VALUES ('Парадиз');
+
+INSERT INTO premiere_world (country_id, quantity, datepremiere) VALUES (1, 10, '1999-12-06');
+INSERT INTO premiere_world (country_id, quantity, datepremiere) VALUES (6, 10, '1999-12-10');
+INSERT INTO premiere_world (country_id, quantity, datepremiere) VALUES (6, 10, '2000-02-11');
+
+INSERT INTO film (title) VALUES ('Зеленая миля');
+INSERT INTO film (title) VALUES ('1+1', 2011);
+INSERT INTO film (title) VALUES ('Волк с Уолл-стрит');
+INSERT INTO film (title) VALUES ('Бриллиантовая рука');
+INSERT INTO film (title) VALUES ('Зеленая книга');
+
+INSERT INTO film_genre VALUES (1, 1), (1, 2), (1, 3), (2, 1), (2, 5), (2, 4), 
+(3, 1), (3, 3), (3, 4), (3, 5), (4, 3), (4, 5), (5, 4), (5, 5), (5, 1);
+
+SELECT film.id, film.title, film.yearfilm genre.title FROM film 
+LEFT JOIN film_genre ON film_genre.film_id=film.id
+LEFT JOIN genre ON film_genre.genre_id=genre.id
+
+SELECT f.id AS N, f.title AS film, 
+g.title AS genre FROM film f
+LEFT JOIN film_genre fg ON fg.film_id=f.id
+LEFT JOIN genre g ON fg.genre_id=g.id
